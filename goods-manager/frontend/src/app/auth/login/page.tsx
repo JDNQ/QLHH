@@ -21,7 +21,7 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 function LoginInner() {
-  const { login } = useAuth();
+  const { login, fetchMe } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/dashboard";
@@ -37,8 +37,11 @@ function LoginInner() {
   const onSubmit = async (data: LoginForm) => {
     try {
       await login(data);
+      // Ensure auth state + cookies are ready before next navigation
+      await fetchMe();
+
       toast.success("Đăng nhập thành công!");
-      router.push(redirect);
+      window.location.href = redirect;
     } catch (err: any) {
       if (err?.errors) {
         Object.entries(err.errors).forEach(([field, messages]) => {

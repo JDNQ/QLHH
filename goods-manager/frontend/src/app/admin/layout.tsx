@@ -1,24 +1,33 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import { Navbar } from '@/components/layout/Navbar';
-import { AdminSidebar } from '@/components/layout/AdminSidebar';
-import { PageSpinner } from '@/components/ui/Spinner';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { Navbar } from "@/components/layout/Navbar";
+import { AdminSidebar } from "@/components/layout/AdminSidebar";
+import { PageSpinner } from "@/components/ui/Spinner";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { isAuthenticated, isAdmin, isLoading, user, fetchMe } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (!isAuthenticated) router.push('/auth/login');
-      else if (!isAdmin) router.push('/');
+    if (!isLoading && isAuthenticated && !user) {
+      fetchMe();
+      return;
     }
-  }, [isAuthenticated, isAdmin, isLoading, router]);
 
-  if (isLoading) {
+    if (!isLoading) {
+      if (!isAuthenticated) router.push("/auth/login");
+      else if (!isAdmin) router.push("/");
+    }
+  }, [fetchMe, isAuthenticated, isAdmin, isLoading, router, user]);
+
+  if (isLoading || (isAuthenticated && !user)) {
     return (
       <div className="min-h-screen bg-neutral-50">
         <div className="h-14 bg-white border-b border-neutral-200" />

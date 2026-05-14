@@ -1,23 +1,38 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import { Navbar } from '@/components/layout/Navbar';
-import { UserSidebar } from '@/components/layout/UserSidebar';
-import { PageSpinner } from '@/components/ui/Spinner';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { Navbar } from "@/components/layout/Navbar";
+import { UserSidebar } from "@/components/layout/UserSidebar";
+import { PageSpinner } from "@/components/ui/Spinner";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { isAuthenticated, isLoading, user, fetchMe } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/auth/login');
-    }
-  }, [isAuthenticated, isLoading, router]);
+    const hasToken =
+      typeof window !== "undefined" &&
+      ((localStorage.getItem("token") ?? "") !== "" ||
+        document.cookie.includes("accessToken="));
 
-  if (isLoading) {
+    // If we have a token but user isn't hydrated yet, verify first.
+    if (!isLoading && hasToken && !user) {
+      fetchMe();
+      return;
+    }
+
+    if (!isLoading && !isAuthenticated) {
+      router.push("/auth/login");
+    }
+  }, [fetchMe, isAuthenticated, isLoading, router, user]);
+
+  if (isLoading || (isAuthenticated && !user)) {
     return (
       <div className="min-h-screen bg-neutral-50">
         <div className="h-14 bg-white border-b border-neutral-200" />

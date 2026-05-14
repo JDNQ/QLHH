@@ -22,6 +22,31 @@ interface AuthStore {
   setLoading: (loading: boolean) => void;
 }
 
+function setMiddlewareCookies(params: { token: string; user: User }) {
+  const { token, user } = params;
+
+  // middleware.ts expects:
+  // - accessToken cookie to mark authenticated
+  // - auth-storage cookie with JSON: { state: { accessToken, user } }
+  document.cookie = `accessToken=${encodeURIComponent(token)}; path=/; max-age=86400`;
+
+  const authStoragePayload = {
+    state: {
+      accessToken: token,
+      user,
+    },
+  };
+
+  document.cookie = `auth-storage=${encodeURIComponent(
+    JSON.stringify(authStoragePayload),
+  )}; path=/; max-age=86400`;
+}
+
+function clearMiddlewareCookies() {
+  document.cookie = "accessToken=; path=/; max-age=0";
+  document.cookie = "auth-storage=; path=/; max-age=0";
+}
+
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
@@ -42,20 +67,25 @@ export const useAuthStore = create<AuthStore>()(
           const { default: api } = await import("@/lib/axios");
           const res = await api.post("/auth/login", data);
 
-          // Spec: { user, token }
-          const { user, token } = res.data.data as {
+          // Spec: { accessToken, refreshToken, user }
+          const { user, accessToken } = res.data.data as {
             user: User;
-            token: string;
+            accessToken: string;
+            refreshToken: string;
           };
 
           if (typeof window !== "undefined") {
-            localStorage.setItem("token", token);
+            localStorage.setItem("token", accessToken);
 
-            // Sync for middleware.ts (reads accessToken cookie)
-            document.cookie = `accessToken=${encodeURIComponent(token)}; path=/; max-age=86400`;
+            setMiddlewareCookies({ token: accessToken, user });
           }
 
-          set({ user, token, isAuthenticated: true, isLoading: false });
+          set({
+            user,
+            token: accessToken,
+            isAuthenticated: true,
+            isLoading: false,
+          });
         } catch (err) {
           set({ isLoading: false });
           throw err;
@@ -68,20 +98,24 @@ export const useAuthStore = create<AuthStore>()(
           const { default: api } = await import("@/lib/axios");
           const res = await api.post("/auth/register", data);
 
-          // Spec: { user, token }
-          const { user, token } = res.data.data as {
+          const { user, accessToken } = res.data.data as {
             user: User;
-            token: string;
+            accessToken: string;
+            refreshToken: string;
           };
 
           if (typeof window !== "undefined") {
-            localStorage.setItem("token", token);
+            localStorage.setItem("token", accessToken);
 
-            // Sync for middleware.ts (reads accessToken cookie)
-            document.cookie = `accessToken=${encodeURIComponent(token)}; path=/; max-age=86400`;
+            setMiddlewareCookies({ token: accessToken, user });
           }
 
-          set({ user, token, isAuthenticated: true, isLoading: false });
+          set({
+            user,
+            token: accessToken,
+            isAuthenticated: true,
+            isLoading: false,
+          });
         } catch (err) {
           set({ isLoading: false });
           throw err;
@@ -94,27 +128,22 @@ export const useAuthStore = create<AuthStore>()(
           (typeof window !== "undefined"
             ? localStorage.getItem("token")
             : null);
+
         if (!token) return;
 
         set({ isLoading: true });
         try {
           const { default: api } = await import("@/lib/axios");
           const res = await api.get("/auth/me");
-          set({
-            user: res.data.data as User,
-            isAuthenticated: true,
-            isLoading: false,
-          });
+          const me = res.data.data as User;
+
+          set({ user: me, isAuthenticated: true, isLoading: false });
 
           if (typeof window !== "undefined") {
-            // Sync for middleware.ts (reads accessToken cookie)
-            const currentToken = localStorage.getItem("token");
-            if (currentToken) {
-              document.cookie = `accessToken=${encodeURIComponent(currentToken)}; path=/; max-age=86400`;
-            }
+            const currentToken = localStorage.getItem("token") ?? token;
+            setMiddlewareCookies({ token: currentToken, user: me });
           }
         } catch {
-          // invalid token
           set({
             user: null,
             token: null,
@@ -123,14 +152,14 @@ export const useAuthStore = create<AuthStore>()(
           });
           if (typeof window !== "undefined") {
             localStorage.removeItem("token");
+            clearMiddlewareCookies();
           }
         }
       },
 
       logout: () => {
-        const { token } = get();
+        const token = get().token;
 
-        // Fire and forget logout API call
         if (token && typeof window !== "undefined") {
           import("@/lib/axios")
             .then(({ default: api }) =>
@@ -141,8 +170,7 @@ export const useAuthStore = create<AuthStore>()(
 
         if (typeof window !== "undefined") {
           localStorage.removeItem("token");
-          // Remove cookie for middleware.ts
-          document.cookie = "accessToken=; path=/; max-age=0";
+          clearMiddlewareCookies();
           window.location.href = "/auth/login";
         }
 
