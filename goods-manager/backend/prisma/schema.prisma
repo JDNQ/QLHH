@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  password     String
+  name         String
+  phone        String?
+  address      String?
+  role         Role      @default(USER)
+  avatar       String?
+  isActive     Boolean   @default(true)
+  refreshToken String?   @db.Text
+  posts        Post[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Category {
+  id          String         @id @default(uuid())
+  name        String
+  icon        String?
+  description String?
+  parentId    String?
+  parent      Category?      @relation("CategoryChildren", fields: [parentId], references: [id])
+  children    Category[]     @relation("CategoryChildren")
+  sortOrder   Int            @default(0)
+  isActive    Boolean        @default(true)
+  posts       PostCategory[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("categories")
+}
+
+model Post {
+  id         String         @id @default(uuid())
+  title      String
+  slug       String         @unique
+  content    String         @db.LongText
+  thumbnail  String?
+  price      String?
+  priceValue Float?
+  priceUnit  String?
+  location   String?
+  status     PostStatus     @default(PENDING)
+  isFeatured Boolean        @default(false)
+  views      Int            @default(0)
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories PostCategory[]
+  images     PostImage[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@map("posts")
+}
+
+model PostCategory {
+  postId     String
+  categoryId String
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([postId, categoryId])
+  @@map("post_categories")
+}
+
+model PostImage {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  url       String
+  isMain    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("post_images")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum PostStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
