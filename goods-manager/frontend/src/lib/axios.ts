@@ -14,7 +14,19 @@ api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     if (typeof window === "undefined") return config;
 
-    const token = localStorage.getItem("token"); // TODO(connect with authStore): ensure authStore persists to same key
+    // Source token from zustand store to avoid mismatched keys/state.
+    // (authStore persists `token` as part of auth-storage.)
+    const token = (() => {
+      try {
+        const raw = localStorage.getItem("auth-storage");
+        if (!raw) return localStorage.getItem("token");
+        const parsed = JSON.parse(raw);
+        return parsed?.state?.token ?? localStorage.getItem("token");
+      } catch {
+        return localStorage.getItem("token");
+      }
+    })();
+
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }

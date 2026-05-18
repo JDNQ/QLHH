@@ -27,6 +27,18 @@ export default function DashboardLayout({
       return;
     }
 
+    if (!isLoading && isAuthenticated && !user) {
+      // already logged-in but user not hydrated yet
+      return;
+    }
+
+    // If user is authenticated, route them based on role.
+    // (Your requirement: user login => go to main menu '/', not /dashboard)
+    if (!isLoading && isAuthenticated && user && user.role !== "ADMIN") {
+      router.replace("/");
+      return;
+    }
+
     if (!isLoading && !isAuthenticated) {
       router.push("/auth/login");
     }

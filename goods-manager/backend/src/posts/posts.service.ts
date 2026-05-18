@@ -2,19 +2,21 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
-} from '@nestjs/common';
-import { PostStatus, Role } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreatePostDto } from './dto/create-post.dto';
-import { UpdatePostDto } from './dto/update-post.dto';
-import { UpdatePostStatusDto } from './dto/update-post-status.dto';
-import { PaginationDto } from '../common/dto/pagination.dto';
-import slugify from 'slugify';
+} from "@nestjs/common";
+import { PostStatus, Role } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
+import { CreatePostDto } from "./dto/create-post.dto";
+import { UpdatePostDto } from "./dto/update-post.dto";
+import { UpdatePostStatusDto } from "./dto/update-post-status.dto";
+import { PaginationDto } from "../common/dto/pagination.dto";
+import slugify from "slugify";
 
 const POST_INCLUDE = {
-  user: { select: { id: true, name: true, email: true, phone: true, avatar: true } },
+  user: {
+    select: { id: true, name: true, email: true, phone: true, avatar: true },
+  },
   categories: { include: { category: true } },
-  images: { orderBy: { isMain: 'desc' as const } },
+  images: { orderBy: { isMain: "desc" as const } },
 };
 
 export class PostsQueryDto extends PaginationDto {
@@ -35,7 +37,16 @@ export class PostsService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(query: PostsQueryDto) {
-    const { page = 1, limit = 12, search, categoryId, location, minPrice, maxPrice, isFeatured } = query;
+    const {
+      page = 1,
+      limit = 12,
+      search,
+      categoryId,
+      location,
+      minPrice,
+      maxPrice,
+      isFeatured,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: any = { status: PostStatus.APPROVED };
@@ -44,7 +55,7 @@ export class PostsService {
     if (location) where.location = { contains: location };
     if (categoryId) where.categories = { some: { categoryId } };
 
-    if (isFeatured === 'true' || isFeatured === '1') {
+    if (isFeatured === "true" || isFeatured === "1") {
       where.isFeatured = true;
     }
 
@@ -60,7 +71,7 @@ export class PostsService {
         include: POST_INCLUDE,
         skip,
         take: limit,
-        orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
       }),
       this.prisma.post.count({ where }),
     ]);
@@ -77,10 +88,13 @@ export class PostsService {
       include: POST_INCLUDE,
     });
     if (!post || post.status !== PostStatus.APPROVED) {
-      throw new NotFoundException('Bài đăng không tồn tại');
+      throw new NotFoundException("Bài đăng không tồn tại");
     }
 
-    await this.prisma.post.update({ where: { id: post.id }, data: { views: { increment: 1 } } });
+    await this.prisma.post.update({
+      where: { id: post.id },
+      data: { views: { increment: 1 } },
+    });
     return { ...post, views: post.views + 1 };
   }
 
@@ -89,7 +103,7 @@ export class PostsService {
       where: { id },
       include: POST_INCLUDE,
     });
-    if (!post) throw new NotFoundException('Bài đăng không tồn tại');
+    if (!post) throw new NotFoundException("Bài đăng không tồn tại");
     return post;
   }
 
@@ -119,11 +133,12 @@ export class PostsService {
     const post = await this.findOne(id);
 
     if (post.userId !== userId && role !== Role.ADMIN) {
-      throw new ForbiddenException('Bạn không có quyền sửa bài đăng này');
+      throw new ForbiddenException("Bạn không có quyền sửa bài đăng này");
     }
 
     const { categoryIds, price, ...data } = dto;
-    const priceValue = price !== undefined ? (parseFloat(price) || null) : undefined;
+    const priceValue =
+      price !== undefined ? parseFloat(price) || null : undefined;
 
     const updatedPost = await this.prisma.post.update({
       where: { id },
@@ -150,24 +165,31 @@ export class PostsService {
     const post = await this.findOne(id);
 
     if (post.userId !== userId && role !== Role.ADMIN) {
-      throw new ForbiddenException('Bạn không có quyền xóa bài đăng này');
+      throw new ForbiddenException("Bạn không có quyền xóa bài đăng này");
     }
 
     await this.prisma.post.delete({ where: { id } });
-    return { message: 'Xóa bài đăng thành công' };
+    return { message: "Xóa bài đăng thành công" };
   }
 
   async addImages(postId: string, userId: string, role: Role, urls: string[]) {
     const post = await this.findOne(postId);
 
+    // Normalize input to avoid 500 when client sends unexpected body (e.g. urls undefined)
+    const safeUrls = Array.isArray(urls) ? urls : [];
+
     if (post.userId !== userId && role !== Role.ADMIN) {
-      throw new ForbiddenException('Bạn không có quyền thêm ảnh vào bài đăng này');
+      throw new ForbiddenException(
+        "Bạn không có quyền thêm ảnh vào bài đăng này",
+      );
     }
 
-    const existingImagesCount = await this.prisma.postImage.count({ where: { postId } });
+    const existingImagesCount = await this.prisma.postImage.count({
+      where: { postId },
+    });
 
     await this.prisma.postImage.createMany({
-      data: urls.map((url, index) => ({
+      data: safeUrls.map((url, index) => ({
         postId,
         url,
         isMain: existingImagesCount === 0 && index === 0,
@@ -183,14 +205,14 @@ export class PostsService {
       include: { post: true },
     });
 
-    if (!image) throw new NotFoundException('Ảnh không tồn tại');
+    if (!image) throw new NotFoundException("Ảnh không tồn tại");
 
     if (image.post.userId !== userId && role !== Role.ADMIN) {
-      throw new ForbiddenException('Bạn không có quyền xóa ảnh này');
+      throw new ForbiddenException("Bạn không có quyền xóa ảnh này");
     }
 
     await this.prisma.postImage.delete({ where: { id: imageId } });
-    return { message: 'Xóa ảnh thành công' };
+    return { message: "Xóa ảnh thành công" };
   }
 
   // Admin methods
@@ -209,7 +231,7 @@ export class PostsService {
         include: POST_INCLUDE,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       }),
       this.prisma.post.count({ where }),
     ]);
@@ -230,20 +252,21 @@ export class PostsService {
   }
 
   async adminStats() {
-    const [total, pending, approved, rejected, expired, featured] = await Promise.all([
-      this.prisma.post.count(),
-      this.prisma.post.count({ where: { status: PostStatus.PENDING } }),
-      this.prisma.post.count({ where: { status: PostStatus.APPROVED } }),
-      this.prisma.post.count({ where: { status: PostStatus.REJECTED } }),
-      this.prisma.post.count({ where: { status: 'EXPIRED' as any } }),
-      this.prisma.post.count({ where: { isFeatured: true } }),
-    ]);
+    const [total, pending, approved, rejected, expired, featured] =
+      await Promise.all([
+        this.prisma.post.count(),
+        this.prisma.post.count({ where: { status: PostStatus.PENDING } }),
+        this.prisma.post.count({ where: { status: PostStatus.APPROVED } }),
+        this.prisma.post.count({ where: { status: PostStatus.REJECTED } }),
+        this.prisma.post.count({ where: { status: "EXPIRED" as any } }),
+        this.prisma.post.count({ where: { isFeatured: true } }),
+      ]);
 
     return { total, pending, approved, rejected, expired, featured };
   }
 
   private async generateUniqueSlug(title: string): Promise<string> {
-    let slug = slugify(title, { lower: true, strict: true, locale: 'vi' });
+    let slug = slugify(title, { lower: true, strict: true, locale: "vi" });
     if (!slug) slug = `post-${Date.now()}`;
 
     const existing = await this.prisma.post.findUnique({ where: { slug } });

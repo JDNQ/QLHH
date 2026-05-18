@@ -5,6 +5,7 @@ import { useDropzone } from "react-dropzone";
 import { Upload, X, Loader2, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uploadService } from "@/services/upload.service";
+import { getImageUrl } from "@/lib/utils";
 import toast from "react-hot-toast";
 
 export interface UploadedImage {
@@ -111,7 +112,6 @@ export function ImageUploader({
       }
     }
     const next = images.filter((i) => i.id !== img.id);
-    // If deleted was main, set first as main
     if (img.isMain && next.length > 0) {
       next[0] = { ...next[0], isMain: true };
     }
@@ -121,6 +121,10 @@ export function ImageUploader({
   const setMain = (id: string) => {
     onChange(images.map((img) => ({ ...img, isMain: img.id === id })));
   };
+
+  // Placeholder URL đẹp
+  const PLACEHOLDER_URL =
+    "https://placehold.co/400x400/4b5563/ffffff?text=No+Image";
 
   return (
     <div className="space-y-3">
@@ -156,14 +160,23 @@ export function ImageUploader({
               className={cn(
                 "relative aspect-square rounded-lg overflow-hidden border-2 bg-neutral-100",
                 img.isMain ? "border-primary" : "border-neutral-100",
-                img.error && "border-danger",
+                img.error && "border-red-500",
               )}
             >
               {/* Image preview */}
               <img
-                src={img.localPreview ?? img.url}
-                alt=""
+                src={
+                  img.localPreview ??
+                  (img.url ? getImageUrl(img.url) : PLACEHOLDER_URL)
+                }
+                alt={img.error ? "Upload error" : "Uploaded image"}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (target && target.src !== PLACEHOLDER_URL) {
+                    target.src = PLACEHOLDER_URL;
+                  }
+                }}
               />
 
               {/* Loading overlay */}
@@ -175,8 +188,10 @@ export function ImageUploader({
 
               {/* Error overlay */}
               {img.error && (
-                <div className="absolute inset-0 bg-danger/20 flex items-center justify-center">
-                  <span className="text-danger text-xs font-medium">Lỗi</span>
+                <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
+                  <span className="text-red-600 text-xs font-medium">
+                    Lỗi upload
+                  </span>
                 </div>
               )}
 
@@ -198,7 +213,7 @@ export function ImageUploader({
                       title="Đặt làm ảnh chính"
                       className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors"
                     >
-                      <Star className="w-3 h-3 text-warning" />
+                      <Star className="w-3 h-3 text-yellow-500" />
                     </button>
                   )}
                   <button
@@ -207,7 +222,7 @@ export function ImageUploader({
                     title="Xóa ảnh"
                     className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors"
                   >
-                    <X className="w-3 h-3 text-danger" />
+                    <X className="w-3 h-3 text-red-500" />
                   </button>
                 </div>
               )}
