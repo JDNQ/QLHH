@@ -12,7 +12,9 @@ import { formatPrice, formatDate, getImageUrl } from '@/lib/utils';
 
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth();
-  const { data: stats, isLoading: statsLoading } = useAdminStats();
+  const { data: stats, isLoading: statsLoading } = useAdminStats({
+    enabled: isAdmin,
+  });
   // Show recent approved posts for non-admin (approximate "activity")
   const { data: recentData, isLoading: postsLoading } = usePosts({ limit: 5 });
 

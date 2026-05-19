@@ -1,79 +1,115 @@
-// ─── Enums ───────────────────────────────────────────────────────────────────
-export type Role = "ADMIN" | "USER";
-export type PostStatus = "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
+export type Role = "user" | "admin" | "USER" | "ADMIN";
+export type UserStatus = "active" | "banned" | "unverified";
+export type ListingStatus =
+  | "draft"
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "expired"
+  | "DRAFT"
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "EXPIRED";
 
-// ─── Core Entities ───────────────────────────────────────────────────────────
 export interface User {
   id: string;
-  email: string;
   name: string;
+  email: string;
   phone?: string;
-  address?: string;
-  role: Role;
   avatar?: string;
-  isActive: boolean;
+  role: Role;
+  status?: UserStatus;
+  isActive?: boolean;
+  address?: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
+  lastLogin?: string;
 }
 
 export interface Category {
   id: string;
   name: string;
+  slug?: string;
   icon?: string;
   description?: string;
   parentId?: string;
   parent?: Category;
   children?: Category[];
-  sortOrder: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  order?: number;
+  sortOrder?: number;
+  isVisible?: boolean;
+  isActive?: boolean;
+  postCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
   _count?: { children: number };
 }
 
-export interface PostImage {
+export interface ListingImage {
   id: string;
-  postId: string;
   url: string;
-  isMain: boolean;
-  createdAt: string;
+  isThumbnail: boolean;
+  order: number;
 }
 
-export interface PostCategory {
-  postId: string;
-  categoryId: string;
-  category: Category;
-}
-
-export interface Post {
+export interface Listing {
   id: string;
   title: string;
-  slug: string;
-  content: string;
-  thumbnail?: string;
-  price?: string;
-  priceValue?: number;
-  priceUnit?: string;
-  location?: string;
-  status: PostStatus;
-  isFeatured: boolean;
-  views: number;
-
+  description: string;
+  price: number;
+  isNegotiable: boolean;
+  isUrgent: boolean;
+  categoryId: string;
+  category?: Category;
+  images: ListingImage[];
+  thumbnailUrl?: string;
+  province: string;
+  district: string;
+  address?: string;
+  phone: string;
+  allowMessage: boolean;
+  showPhone: boolean;
+  status: ListingStatus;
+  rejectedReason?: string;
+  viewCount: number;
   userId: string;
-  user: Pick<User, "id" | "name" | "email" | "phone" | "avatar">;
-
-  categories: PostCategory[];
-  images: PostImage[];
-
+  user: User;
   createdAt: string;
   updatedAt: string;
 }
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  user: User;
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+  errors?: Record<string, string[]>;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginatedData<T> {
+  data: T[];
+  meta: PaginationMeta;
+}
+
+export interface ApiError {
+  message: string;
+  errors?: Record<string, string[]>;
+  status?: number;
 }
 
 export interface LoginData {
@@ -89,37 +125,87 @@ export interface RegisterData {
   address?: string;
 }
 
-// ─── Post Forms ───────────────────────────────────────────────────────────────
-export interface CreatePostData {
-  title: string;
-  content: string;
-  thumbnail?: string;
-  price?: string;
-  priceUnit?: string;
+export interface AuthTokens {
+  token: string;
+  accessToken: string;
+  refreshToken?: string;
+  user: User;
+}
+
+export interface ListingsQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: string;
+  categoryId?: string;
+  status?: ListingStatus | string;
+  sort?: "newest" | "price_asc" | "price_desc" | string;
+  province?: string;
+  district?: string;
   location?: string;
-  categoryIds?: string[];
+  minPrice?: string | number;
+  maxPrice?: string | number;
 }
 
-export type UpdatePostData = Partial<CreatePostData>;
-
-export interface UpdatePostStatusData {
-  status?: PostStatus;
-  isFeatured?: boolean;
+export interface CreateListingData {
+  title: string;
+  categoryId: string;
+  price: number;
+  isNegotiable?: boolean;
+  isUrgent?: boolean;
+  description: string;
+  province: string;
+  district: string;
+  address?: string;
+  phone: string;
+  allowMessage?: boolean;
+  showPhone?: boolean;
+  status?: ListingStatus;
 }
 
-// ─── Category Forms ────────────────────────────────────────────────────────────
+export type UpdateListingData = Partial<CreateListingData> & {
+  rejectedReason?: string;
+};
+
+export type UploadedListingImage = ListingImage;
+
+export interface UsersQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: UserStatus | string;
+}
+
 export interface CreateCategoryData {
   name: string;
+  slug?: string;
   icon?: string;
   description?: string;
   parentId?: string;
+  order?: number;
   sortOrder?: number;
+  isVisible?: boolean;
   isActive?: boolean;
 }
 
 export type UpdateCategoryData = Partial<CreateCategoryData>;
 
-// ─── User Forms ────────────────────────────────────────────────────────────────
+export interface CreateUserData {
+  email: string;
+  password: string;
+  name: string;
+  phone?: string;
+  role?: Role;
+}
+
+export interface UpdateUserData {
+  name?: string;
+  phone?: string;
+  avatar?: string;
+  role?: Role;
+  status?: UserStatus;
+}
+
 export interface UpdateProfileData {
   name?: string;
   phone?: string;
@@ -132,79 +218,63 @@ export interface ChangePasswordData {
   newPassword: string;
 }
 
-export interface CreateUserData {
-  email: string;
-  password: string;
-  name: string;
-  phone?: string;
-  address?: string;
-  role?: Role;
+// Compatibility layer for existing UI while services move to /listings.
+export type PostStatus = ListingStatus;
+export interface PostImage {
+  id: string;
+  postId?: string;
+  url: string;
+  isMain: boolean;
+  createdAt?: string;
 }
-
-export interface UpdateUserData {
-  name?: string;
-  phone?: string;
-  address?: string;
-  role?: Role;
-  isActive?: boolean;
+export interface PostCategory {
+  postId?: string;
+  categoryId: string;
+  category: Category;
 }
-
-// ─── Pagination & Query ───────────────────────────────────────────────────────
-export interface PaginationMeta {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface PaginatedData<T> {
-  data: T[];
-  meta: PaginationMeta;
-}
-
-export interface PostsQuery {
-  page?: number;
-  limit?: number;
-  search?: string;
-  categoryId?: string;
+export interface Post {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  thumbnail?: string;
+  price?: string;
+  priceValue?: number;
+  priceUnit?: string;
   location?: string;
-  minPrice?: string;
-  maxPrice?: string;
-  isFeatured?: string;
+  status: PostStatus;
+  isFeatured: boolean;
+  views: number;
+  userId: string;
+  user: Pick<User, "id" | "name" | "email" | "phone" | "avatar">;
+  categories: PostCategory[];
+  images: PostImage[];
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface AdminPostsQuery {
-  page?: number;
-  limit?: number;
-  search?: string;
-  status?: PostStatus;
+export type PostsQuery = ListingsQuery;
+export interface AdminPostsQuery extends ListingsQuery {
   userId?: string;
 }
-
-export interface UsersQuery {
-  page?: number;
-  limit?: number;
-  search?: string;
+export interface CreatePostData {
+  title: string;
+  content: string;
+  thumbnail?: string;
+  price?: string;
+  priceUnit?: string;
+  location?: string;
+  categoryIds?: string[];
+}
+export type UpdatePostData = Partial<CreatePostData>;
+export interface UpdatePostStatusData {
+  status?: PostStatus;
+  isFeatured?: boolean;
 }
 
-// ─── API Response ─────────────────────────────────────────────────────────────
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
-
-export interface ApiError {
-  message: string;
-  errors?: Record<string, string[]>;
-  status?: number;
-}
-
-// ─── Upload ───────────────────────────────────────────────────────────────────
 export interface UploadImageResponse {
   url: string;
 }
-
 export interface UploadImagesResponse {
   urls: string[];
 }

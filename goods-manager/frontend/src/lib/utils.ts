@@ -6,13 +6,13 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatPrice(price?: string | number | null): string {
-  if (price == null || price === "") return "Thỏa thuận";
+  if (price == null || price === "") return "Thoa thuan";
   const num = typeof price === "string" ? parseFloat(price) : price;
-  if (isNaN(num)) return String(price);
-  if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(1)} tỷ`;
-  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(0)} triệu`;
+  if (Number.isNaN(num)) return String(price);
+  if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(1)} ty`;
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(0)} trieu`;
   if (num >= 1_000) return `${(num / 1_000).toFixed(0)}K`;
-  return num.toLocaleString("vi-VN") + " ₫";
+  return num.toLocaleString("vi-VN") + " VND";
 }
 
 export function formatDate(dateStr: string): string {
@@ -23,10 +23,10 @@ export function formatDate(dateStr: string): string {
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
 
-  if (mins < 1) return "Vừa xong";
-  if (mins < 60) return `${mins} phút trước`;
-  if (hours < 24) return `${hours} giờ trước`;
-  if (days < 7) return `${days} ngày trước`;
+  if (mins < 1) return "Vua xong";
+  if (mins < 60) return `${mins} phut truoc`;
+  if (hours < 24) return `${hours} gio truoc`;
+  if (days < 7) return `${days} ngay truoc`;
   return date.toLocaleDateString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
@@ -46,31 +46,33 @@ export function formatFullDate(dateStr: string): string {
 
 export function getPostStatusLabel(status: string): string {
   const map: Record<string, string> = {
-    PENDING: "Chờ duyệt",
-    APPROVED: "Đã duyệt",
-    REJECTED: "Bị từ chối",
-    EXPIRED: "Hết hạn",
+    draft: "Ban nhap",
+    pending: "Cho duyet",
+    approved: "Da duyet",
+    rejected: "Bi tu choi",
+    expired: "Het han",
   };
-  return map[status] ?? status;
+  return map[status.toLowerCase()] ?? status;
 }
 
 export function getPostStatusColor(status: string): string {
   const map: Record<string, string> = {
-    PENDING: "bg-warning-light text-warning",
-    APPROVED: "bg-success-light text-success",
-    REJECTED: "bg-danger-light text-danger",
-    EXPIRED: "bg-neutral-100 text-neutral-500",
+    draft: "bg-neutral-100 text-neutral-500",
+    pending: "bg-warning-light text-warning",
+    approved: "bg-success-light text-success",
+    rejected: "bg-danger-light text-danger",
+    expired: "bg-neutral-100 text-neutral-500",
   };
-  return map[status] ?? "bg-neutral-100 text-neutral-500";
+  return map[status.toLowerCase()] ?? "bg-neutral-100 text-neutral-500";
 }
 
 export function getUserRoleLabel(role: string): string {
-  return role === "ADMIN" ? "Quản trị" : "Người dùng";
+  return role.toLowerCase() === "admin" ? "Quan tri" : "Nguoi dung";
 }
 
 export function truncate(str: string, length: number): string {
   if (str.length <= length) return str;
-  return str.slice(0, length) + "…";
+  return str.slice(0, length) + "...";
 }
 
 export function buildQueryString(params: Record<string, unknown>): string {
@@ -88,21 +90,17 @@ export function getImageUrl(path?: string | null): string {
     return "https://placehold.co/400x400/4b5563/ffffff?text=No+Image";
   }
 
-  // Nếu là URL đầy đủ thì trả về luôn
-  if (path.startsWith("http")) {
+  if (path.startsWith("http") || path.startsWith("blob:")) {
     return path;
   }
 
-  const apiBaseRaw = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+  const apiBaseRaw = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
   const apiBase = apiBaseRaw.replace(/\/api\/?$/, "").replace(/\/$/, "");
-
   const cleanedPath = path.replace(/^\//, "");
 
-  // Xử lý linh hoạt các trường hợp path
-  if (cleanedPath.startsWith("uploads/") || cleanedPath.startsWith("images/")) {
+  if (cleanedPath.startsWith("uploads/") || cleanedPath.startsWith("assets/")) {
     return `${apiBase}/${cleanedPath}`;
   }
 
-  // Fallback
   return `${apiBase}/uploads/${cleanedPath}`;
 }

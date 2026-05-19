@@ -12,7 +12,12 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
-import { PostsService, PostsQueryDto, AdminPostsQueryDto } from './posts.service';
+import {
+  PostsService,
+  PostsQueryDto,
+  AdminPostsQueryDto,
+  MyPostsQueryDto,
+} from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { UpdatePostStatusDto } from './dto/update-post-status.dto';
@@ -50,6 +55,11 @@ export class PostsController {
   @HttpCode(HttpStatus.OK)
   adminUpdateStatus(@Param('id') id: string, @Body() dto: UpdatePostStatusDto) {
     return this.postsService.adminUpdateStatus(id, dto);
+  }
+
+  @Get('my')
+  findMine(@CurrentUser('id') userId: string, @Query() query: MyPostsQueryDto) {
+    return this.postsService.findMine(userId, query);
   }
 
   // Public routes

@@ -12,9 +12,6 @@ export const uploadService = {
       const res = await api.post<{ data: UploadImageResponse }>(
         "/upload/image",
         formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
       );
 
       const returnedUrl = res.data.data.url;
@@ -40,9 +37,6 @@ export const uploadService = {
     const res = await api.post<{ data: UploadImagesResponse }>(
       "/upload/images",
       formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      },
     );
 
     return res.data.data.urls;
@@ -55,9 +49,6 @@ export const uploadService = {
     const res = await api.post<{ data: UploadImageResponse }>(
       "/upload/avatar",
       formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      },
     );
     return res.data.data.url;
   },

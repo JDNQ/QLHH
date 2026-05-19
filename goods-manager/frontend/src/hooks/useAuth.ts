@@ -7,7 +7,7 @@ export function useAuth() {
   const router = useRouter();
   const store = useAuthStore();
 
-  const isAdmin = store.user?.role === "ADMIN";
+  const isAdmin = store.user?.role?.toLowerCase() === "admin";
 
   const requireAuth = () => {
     if (!store.isAuthenticated) {

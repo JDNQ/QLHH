@@ -1,16 +1,8 @@
-# TODO - Seed thêm nhiều dữ liệu để test
+# TODO
 
-## Kế hoạch
-
-- [ ] Cập nhật `goods-manager/backend/prisma/seed.ts` để seed thêm 60-100 posts (trộn status/featured/views/giá/vị trí).
-
-- [x] Với mỗi post: tạo 1-3 quan hệ category qua `postCategory.upsert` (key `postId_categoryId`).
-
-- [x] (Tùy chọn) Seed `post_images` cho mỗi post (1-3 ảnh giả) để test UI chi tiết.
-
-- [ ] Đảm bảo seed chạy lặp lại không trùng lặp: dùng `upsert` theo `slug`.
-
-## Follow-up
-
-- [ ] Chạy `npm run seed` trong `goods-manager/backend`.
-- [ ] Kiểm tra listing (public) và admin stats/filter để thấy nhiều dữ liệu.
+- [x] Identify exact mismatch causing `Cannot destructure property 'user' of 'res.data.data' as it is undefined`.
+- [x] Fix frontend login/register response handling to safely handle unexpected backend response shape.
+- [x] (If needed) Fix backend authService/controller to ensure consistent response `{ accessToken, refreshToken, user }`.
+- [x] Add defensive logging for login response shape.
+- [x] Run frontend/backend typecheck/lint.
+- [ ] Quick login test with a running database.

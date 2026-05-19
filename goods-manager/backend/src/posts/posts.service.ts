@@ -32,6 +32,10 @@ export class AdminPostsQueryDto extends PaginationDto {
   userId?: string;
 }
 
+export class MyPostsQueryDto extends PaginationDto {
+  status?: PostStatus;
+}
+
 @Injectable()
 export class PostsService {
   constructor(private prisma: PrismaService) {}
@@ -127,6 +131,31 @@ export class PostsService {
     });
 
     return post;
+  }
+
+  async findMine(userId: string, query: MyPostsQueryDto) {
+    const { page = 1, limit = 12, search, status } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = { userId };
+    if (search) where.title = { contains: search };
+    if (status) where.status = status;
+
+    const [data, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        include: POST_INCLUDE,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.post.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async update(id: string, userId: string, role: Role, dto: UpdatePostDto) {

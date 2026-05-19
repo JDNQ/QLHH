@@ -3,8 +3,12 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import toast from "react-hot-toast";
 
+const apiBaseRaw =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+const apiBase = apiBaseRaw;
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: apiBase,
   timeout: 10_000,
   headers: { "Content-Type": "application/json" },
 });
@@ -12,6 +16,10 @@ const api = axios.create({
 // ── Request interceptor: attach Bearer token ──────────────────────────────────
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    if (config.data instanceof FormData && config.headers) {
+      delete config.headers["Content-Type"];
+    }
+
     if (typeof window === "undefined") return config;
 
     // Source token from zustand store to avoid mismatched keys/state.

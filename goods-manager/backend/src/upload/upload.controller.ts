@@ -10,6 +10,7 @@ import {
 import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import { extname, join } from "path";
+import { mkdirSync } from "fs";
 import { v4 as uuidv4 } from "uuid";
 import { UploadService } from "./upload.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
@@ -28,8 +29,14 @@ const imageFilter = (req: any, file: any, cb: Function) => {
   cb(null, true);
 };
 
+function ensureUploadDir(folder: "images" | "avatars") {
+  const dir = join(process.cwd(), "uploads", folder);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
 const imageStorage = diskStorage({
-  destination: join(process.cwd(), "uploads", "images"),
+  destination: ensureUploadDir("images"),
   filename: (req, file, cb) => {
     const uniqueName = `${uuidv4()}${extname(file.originalname).toLowerCase()}`;
     cb(null, uniqueName);
@@ -37,7 +44,7 @@ const imageStorage = diskStorage({
 });
 
 const avatarStorage = diskStorage({
-  destination: join(process.cwd(), "uploads", "avatars"),
+  destination: ensureUploadDir("avatars"),
   filename: (req, file, cb) => {
     const uniqueName = `${uuidv4()}${extname(file.originalname).toLowerCase()}`;
     cb(null, uniqueName);
@@ -80,7 +87,7 @@ export class UploadController {
     FileInterceptor("file", {
       storage: avatarStorage,
       fileFilter: imageFilter,
-      limits: { fileSize: 2 * 1024 * 1024 },
+      limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
   uploadAvatar(@UploadedFile() file: Express.Multer.File) {

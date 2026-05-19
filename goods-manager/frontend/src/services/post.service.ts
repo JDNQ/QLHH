@@ -1,59 +1,124 @@
-import api from '@/lib/axios';
+import { listingService } from "@/services/listing.service";
 import type {
-  Post,
-  PaginatedData,
-  PostsQuery,
   AdminPostsQuery,
   CreatePostData,
+  Listing,
+  PaginatedData,
+  PaginatedResponse,
+  Post,
   UpdatePostData,
   UpdatePostStatusData,
-} from '@/types';
+} from "@/types";
+
+function slugFallback(listing: Listing) {
+  return listing.id;
+}
+
+export function listingToPost(listing: Listing): Post {
+  const category = listing.category;
+
+  return {
+    id: listing.id,
+    title: listing.title,
+    slug: slugFallback(listing),
+    content: listing.description,
+    thumbnail: listing.thumbnailUrl,
+    price: String(listing.price ?? ""),
+    priceValue: listing.price,
+    location: [listing.district, listing.province].filter(Boolean).join(", "),
+    status: listing.status,
+    isFeatured: listing.isUrgent,
+    views: listing.viewCount,
+    userId: listing.userId,
+    user: listing.user,
+    categories: category
+      ? [{ categoryId: category.id, category }]
+      : listing.categoryId
+        ? [{ categoryId: listing.categoryId, category: { id: listing.categoryId, name: "Danh muc" } }]
+        : [],
+    images: (listing.images ?? []).map((image) => ({
+      id: image.id,
+      url: image.url,
+      isMain: image.isThumbnail,
+    })),
+    createdAt: listing.createdAt,
+    updatedAt: listing.updatedAt,
+  };
+}
+
+function toPaginatedData(
+  response: PaginatedResponse<Listing>,
+): PaginatedData<Post> {
+  return {
+    data: response.items.map(listingToPost),
+    meta: {
+      total: response.total,
+      page: response.page,
+      limit: response.limit,
+      totalPages: response.totalPages,
+    },
+  };
+}
+
+function postDataToListingData(data: CreatePostData | UpdatePostData) {
+  return {
+    title: data.title ?? "",
+    description: data.content ?? "",
+    price: Number(data.price ?? 0),
+    categoryId: data.categoryIds?.[0] ?? "",
+    province: data.location ?? "",
+    district: data.location ?? "",
+    phone: "",
+    allowMessage: true,
+    showPhone: true,
+    status: "pending" as const,
+  };
+}
 
 export const postService = {
-  // ── Public ──────────────────────────────────────────────────────────────────
-  async getPosts(params: PostsQuery = {}): Promise<PaginatedData<Post>> {
-    const res = await api.get('/posts', { params });
-    return res.data.data;
+  async getPosts(params: AdminPostsQuery = {}): Promise<PaginatedData<Post>> {
+    const res = await listingService.getListings({
+      ...params,
+      category: params.category ?? params.categoryId,
+    });
+    return toPaginatedData(res);
   },
 
   async getPostById(id: string): Promise<Post> {
-    const res = await api.get(`/posts/${id}`);
-    return res.data.data;
+    return listingToPost(await listingService.getListingById(id));
   },
 
   async getPostBySlug(slug: string): Promise<Post> {
-    const res = await api.get(`/posts/slug/${slug}`);
-    return res.data.data;
+    return listingToPost(await listingService.getListingBySlug(slug));
   },
 
-  // ── Authenticated ────────────────────────────────────────────────────────────
   async createPost(data: CreatePostData): Promise<Post> {
-    const res = await api.post('/posts', data);
-    return res.data.data;
+    return listingToPost(await listingService.createListing(postDataToListingData(data)));
   },
 
   async updatePost(id: string, data: UpdatePostData): Promise<Post> {
-    const res = await api.patch(`/posts/${id}`, data);
-    return res.data.data;
+    return listingToPost(await listingService.updateListing(id, postDataToListingData(data)));
   },
 
   async deletePost(id: string): Promise<void> {
-    await api.delete(`/posts/${id}`);
+    await listingService.deleteListing(id);
+  },
+
+  async getMyPosts(params: AdminPostsQuery = {}): Promise<PaginatedData<Post>> {
+    return toPaginatedData(await listingService.getMyListings(params));
   },
 
   async addImages(postId: string, urls: string[]): Promise<Post> {
-    const res = await api.post(`/posts/${postId}/images`, { urls });
-    return res.data.data;
+    // Images are uploaded by upload.service in the new API flow.
+    return this.getPostById(postId);
   },
 
   async removeImage(imageId: string): Promise<void> {
-    await api.delete(`/posts/images/${imageId}`);
+    // TODO: connect API once listingId is available at call site.
   },
 
-  // ── Admin ────────────────────────────────────────────────────────────────────
   async adminGetPosts(params: AdminPostsQuery = {}): Promise<PaginatedData<Post>> {
-    const res = await api.get('/posts/admin/all', { params });
-    return res.data.data;
+    return toPaginatedData(await listingService.getAdminListings(params));
   },
 
   async adminGetStats(): Promise<{
@@ -64,12 +129,22 @@ export const postService = {
     expired: number;
     featured: number;
   }> {
-    const res = await api.get('/posts/admin/stats');
+    const res = await (await import("@/lib/axios")).default.get("/posts/admin/stats");
     return res.data.data;
   },
 
-  async adminUpdateStatus(id: string, data: UpdatePostStatusData): Promise<Post> {
-    const res = await api.patch(`/posts/admin/${id}/status`, data);
-    return res.data.data;
+  async adminUpdateStatus(
+    id: string,
+    data: UpdatePostStatusData,
+  ): Promise<Post> {
+    if (data.status === "approved") {
+      return listingToPost(await listingService.approveListing(id));
+    }
+    if (data.status === "rejected") {
+      return listingToPost(
+        await listingService.rejectListing(id, "Khong dat yeu cau"),
+      );
+    }
+    return this.getPostById(id);
   },
 };

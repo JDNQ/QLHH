@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
       const parsed = JSON.parse(decodeURIComponent(authStorage));
       const state = parsed?.state;
       isAuthenticated = !!state?.accessToken && !!state?.user;
-      isAdmin = state?.user?.role === 'ADMIN';
+      isAdmin = String(state?.user?.role ?? '').toLowerCase() === 'admin';
     } catch {
       // ignore parse errors
     }

@@ -2,13 +2,12 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
-  BadRequestException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../prisma/prisma.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import * as bcrypt from "bcrypt";
+import { PrismaService } from "../prisma/prisma.service";
+import { LoginDto } from "./dto/login.dto";
+import { RegisterDto } from "./dto/register.dto";
 
 @Injectable()
 export class AuthService {
@@ -18,19 +17,21 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
 
     if (!user) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+      throw new UnauthorizedException("Email hoặc mật khẩu không đúng");
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Tài khoản đã bị khóa');
+      throw new UnauthorizedException("Tài khoản đã bị khóa");
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+      throw new UnauthorizedException("Email hoặc mật khẩu không đúng");
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
@@ -44,9 +45,11 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (existing) {
-      throw new ConflictException('Email đã được sử dụng');
+      throw new ConflictException("Email đã được sử dụng");
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -70,15 +73,27 @@ export class AuthService {
     };
   }
 
-  async refreshTokens(userId: string, refreshToken: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+  async refreshTokens(refreshToken: string) {
+    let payload: { sub: string; email: string; role: string };
 
-    if (!user || !user.refreshToken) {
-      throw new UnauthorizedException('Refresh token không hợp lệ');
+    try {
+      payload = await this.jwtService.verifyAsync(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET || "default-refresh-secret",
+      });
+    } catch {
+      throw new UnauthorizedException("Refresh token khong hop le");
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+
+    if (!user || !user.refreshToken || !user.isActive) {
+      throw new UnauthorizedException("Refresh token không hợp lệ");
     }
 
     if (user.refreshToken !== refreshToken) {
-      throw new UnauthorizedException('Refresh token không hợp lệ');
+      throw new UnauthorizedException("Refresh token không hợp lệ");
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
@@ -92,7 +107,7 @@ export class AuthService {
       where: { id: userId },
       data: { refreshToken: null },
     });
-    return { message: 'Đăng xuất thành công' };
+    return { message: "Đăng xuất thành công" };
   }
 
   async getMe(userId: string) {
@@ -112,7 +127,7 @@ export class AuthService {
       },
     });
 
-    if (!user) throw new UnauthorizedException('Người dùng không tồn tại');
+    if (!user) throw new UnauthorizedException("Người dùng không tồn tại");
     return user;
   }
 
@@ -121,12 +136,12 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_SECRET || 'default-secret',
-        expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+        secret: process.env.JWT_SECRET || "default-secret",
+        expiresIn: process.env.JWT_EXPIRES_IN || "15m",
       }),
       this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
-        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+        secret: process.env.JWT_REFRESH_SECRET || "default-refresh-secret",
+        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
       }),
     ]);
 

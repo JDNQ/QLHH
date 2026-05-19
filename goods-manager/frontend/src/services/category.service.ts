@@ -6,15 +6,42 @@ import type {
   UpdateCategoryData,
 } from '@/types';
 
+function unwrap<T>(payload: any): T {
+  return payload?.data ?? payload;
+}
+
+function normalizePaginated<T>(payload: any): PaginatedData<T> {
+  const data = unwrap<any>(payload);
+  if (Array.isArray(data)) {
+    return {
+      data,
+      meta: { total: data.length, page: 1, limit: data.length, totalPages: 1 },
+    };
+  }
+  if (Array.isArray(data?.items)) {
+    return {
+      data: data.items,
+      meta: {
+        total: data.total,
+        page: data.page,
+        limit: data.limit,
+        totalPages: data.totalPages,
+      },
+    };
+  }
+  return data;
+}
+
 export const categoryService = {
   async getTree(): Promise<Category[]> {
     const res = await api.get('/categories/tree');
-    return res.data.data;
+    const payload = unwrap<unknown>(res.data);
+    return Array.isArray(payload) ? (payload as Category[]) : [];
   },
 
   async getCategories(params: { page?: number; limit?: number; parentId?: string } = {}): Promise<PaginatedData<Category>> {
     const res = await api.get('/categories', { params });
-    return res.data.data;
+    return normalizePaginated<Category>(res.data);
   },
 
   async getCategoryById(id: string): Promise<Category> {
@@ -24,12 +51,12 @@ export const categoryService = {
 
   async createCategory(data: CreateCategoryData): Promise<Category> {
     const res = await api.post('/categories', data);
-    return res.data.data;
+    return unwrap<Category>(res.data);
   },
 
   async updateCategory(id: string, data: UpdateCategoryData): Promise<Category> {
     const res = await api.patch(`/categories/${id}`, data);
-    return res.data.data;
+    return unwrap<Category>(res.data);
   },
 
   async deleteCategory(id: string): Promise<void> {
