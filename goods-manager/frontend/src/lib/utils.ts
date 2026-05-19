@@ -85,22 +85,25 @@ export function buildQueryString(params: Record<string, unknown>): string {
   return qs ? `?${qs}` : "";
 }
 
-export function getImageUrl(path?: string | null): string {
-  if (!path) {
-    return "https://placehold.co/400x400/4b5563/ffffff?text=No+Image";
+export function getImageUrl(url?: string | null): string {
+  if (!url) return "";
+
+  // Đã là URL đầy đủ hoặc blob → giữ nguyên
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("blob:")
+  ) {
+    return url;
   }
 
-  if (path.startsWith("http") || path.startsWith("blob:")) {
-    return path;
-  }
+  const storageBase =
+    process.env.NEXT_PUBLIC_STORAGE_URL ||
+    process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
+    "http://localhost:3001";
 
-  const apiBaseRaw = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
-  const apiBase = apiBaseRaw.replace(/\/api\/?$/, "").replace(/\/$/, "");
-  const cleanedPath = path.replace(/^\//, "");
+  // Đảm bảo path bắt đầu bằng /
+  const path = url.startsWith("/") ? url : `/${url}`;
 
-  if (cleanedPath.startsWith("uploads/") || cleanedPath.startsWith("assets/")) {
-    return `${apiBase}/${cleanedPath}`;
-  }
-
-  return `${apiBase}/uploads/${cleanedPath}`;
+  return `${storageBase}${path}`;
 }

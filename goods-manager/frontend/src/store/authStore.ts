@@ -185,7 +185,17 @@ export const useAuthStore = create<AuthStore>()(
         });
       },
 
-      setUser: (user) => set({ user }),
+      setUser: (user) => {
+        set({ user });
+        // Cập nhật cookie để middleware không reset lại user cũ
+        if (typeof window !== "undefined") {
+          const token =
+            useAuthStore.getState().token ?? localStorage.getItem("token");
+          if (token) {
+            setMiddlewareCookies({ token, user });
+          }
+        }
+      },
     }),
     {
       name: "auth-storage",

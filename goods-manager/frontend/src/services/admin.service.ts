@@ -30,36 +30,31 @@ function normalizePaginated<T>(payload: any): PaginatedData<T> {
 export const adminService = {
   // ── Users ────────────────────────────────────────────────────────────────────
   async getUsers(params: UsersQuery = {}): Promise<PaginatedData<User>> {
-    const res = await api.get('/admin/users', { params });
+    const res = await api.get('/users', { params });
     return normalizePaginated<User>(res.data);
   },
 
   async getUserById(id: string): Promise<User> {
-    const res = await api.get(`/admin/users/${id}`);
+    const res = await api.get(`/users/${id}`);
     return unwrap<User>(res.data);
   },
 
   async createUser(data: CreateUserData): Promise<User> {
-    const res = await api.post('/admin/users', data);
+    const res = await api.post('/users', data);
     return unwrap<User>(res.data);
   },
 
   async updateUser(id: string, data: UpdateUserData): Promise<User> {
-    const res = await api.put(`/admin/users/${id}`, data);
+    const res = await api.patch(`/users/${id}`, data);
     return unwrap<User>(res.data);
   },
 
   async deleteUser(id: string): Promise<void> {
-    await api.delete(`/admin/users/${id}`);
+    await api.delete(`/users/${id}`);
   },
 
   async toggleUserActive(id: string): Promise<User> {
-    try {
-      const res = await api.put(`/admin/users/${id}/ban`);
-      return unwrap<User>(res.data);
-    } catch {
-      const res = await api.put(`/admin/users/${id}/unban`);
-      return unwrap<User>(res.data);
-    }
+    const res = await api.patch(`/users/${id}/toggle-active`);
+    return unwrap<User>(res.data);
   },
 };

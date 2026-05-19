@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MapPin, Clock, Eye, Phone, MessageSquare, Share2, ChevronLeft, ChevronRight, User } from 'lucide-react';
-import { usePostBySlug } from '@/hooks/usePosts';
+import { usePostDetail } from '@/hooks/usePosts';
 import { useAuth } from '@/hooks/useAuth';
 import { Navbar } from '@/components/layout/Navbar';
 import { PostStatusBadge } from '@/components/ui/Badge';
@@ -14,10 +14,10 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 
 export default function ListingDetailPage() {
-  const { id: slug } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { isAuthenticated, user } = useAuth();
-  const { data: post, isLoading, isError } = usePostBySlug(slug);
+  const { data: post, isLoading, isError } = usePostDetail(id);
   const [activeImage, setActiveImage] = useState(0);
   const [showPhone, setShowPhone] = useState(false);
 

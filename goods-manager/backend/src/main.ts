@@ -14,7 +14,7 @@ async function bootstrap() {
   app.setGlobalPrefix(process.env.API_PREFIX || "api");
 
   // Static files
-  app.useStaticAssets(join(__dirname, "..", "uploads"), {
+  app.useStaticAssets(join(process.cwd(), "uploads"), {
     prefix: "/uploads",
   });
 
